@@ -1,0 +1,455 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "02676a26-7e22-4865-86d6-c9644926e31d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM",
+          "mode": "list",
+          "cachedResultName": "n8n sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9d6fb16c-a9c8-4aee-873e-24215ac8abb8",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KlZMWUbJUNCH5Kc2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "d3868705-59cd-40a1-ab50-d8f6ff0666f3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a cold internship email. Name: {{ $json.Name }}, Role: {{ $json.Role }}, Organization: {{ $json.Organization }}, Type: {{ $json.Type }}, Why them: {{ $json['Why Them'] }}. Keep it between 150 to 200 words, respectful, specific, no special characters. Return ONLY: Subject: [subject line] then on next line Body: [email text] my name is Ayushman Chakraborty please add this detail in the mail \"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        720,
+        32
+      ],
+      "id": "3761f6f9-a474-4d02-9414-1afd5588b9ca",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7Wh1VWU23vv0j8pE",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst sheetItems = $('Get row(s) in sheet').all();\n\nreturn items.map((item, index) => {\n  const text = item.json.choices[0].message.content;\n\n  const subjectMatch = text.match(/Subject:\\s*(.+)/i);\n  const bodyMatch = text.match(/Body:\\s*([\\s\\S]+)/i);\n\n  const subject = subjectMatch ? subjectMatch[1].trim() : \"Internship Inquiry\";\n  const body = bodyMatch ? bodyMatch[1].trim() : text;\n\n  const rowNum = sheetItems[index] ? sheetItems[index].json.row_number : null;\n\n  return {\n    json: {\n      subject: subject,\n      body: body,\n      row_number: rowNum\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        32
+      ],
+      "id": "6c292651-153a-4da9-a138-dffcf804129c",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM",
+          "mode": "list",
+          "cachedResultName": "n8n sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126KJyguR7QD6WwyQshF-RqLZsv7sV9ydbhe-qKRZ5OM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Loop Over Items').item.json['row_number'] }}",
+            "G": "={{ $json.subject }}",
+            "H": "={{ $json.body }}",
+            "I": "=Draft Ready"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "A",
+              "displayName": "A",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "B",
+              "displayName": "B",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "C",
+              "displayName": "C",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "D",
+              "displayName": "D",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "E",
+              "displayName": "E",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "F",
+              "displayName": "F",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "G",
+              "displayName": "G",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "H",
+              "displayName": "H",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "I",
+              "displayName": "I",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "J",
+              "displayName": "J",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "K",
+              "displayName": "K",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "L",
+              "displayName": "L",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        32
+      ],
+      "id": "29daad06-e0b0-4221-bc14-a011f556cf2d",
+      "name": "Update row in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KlZMWUbJUNCH5Kc2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $('Code in JavaScript').first().json.subject }}",
+        "message": "={{ $('Code in JavaScript').first().json.body }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "data"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        32
+      ],
+      "id": "7c82ad92-f744-4051-aa2d-e850e6b0d318",
+      "name": "Create a draft",
+      "webhookId": "0c53d05e-f3d6-4187-bc53-48462d80683e",
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Ep3WqZNjAEcy7LQ2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1QI09OCF2i_dNI5-zicMnlt-dgDcUlkTm",
+          "mode": "list",
+          "cachedResultName": "Ayushman_Chakraborty (resume) _.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1QI09OCF2i_dNI5-zicMnlt-dgDcUlkTm/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "=data",
+          "fileName": "Ayushman_Chakraborty_resume"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        32
+      ],
+      "id": "5b708f9d-7e7e-4af0-b2f4-e6e3f0c283e0",
+      "name": "Download file",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rPTuMdySt7VfwsM5",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a25e75b7-476d-4065-8661-1038dc8657d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8ffcb52ab5d8869d8ff418eb9f94125b0b8d551930b9b4b82167ffc9b33bbc1e"
+  },
+  "id": "F6sjuqscWG1XM0Mj",
+  "tags": []
+}
