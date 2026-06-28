@@ -1,2 +1,2 @@
 ## n8n workflow repository
-agentic workflows for SAAS 
+agentic workflows for SAAS products
