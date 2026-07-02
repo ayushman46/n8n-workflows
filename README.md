@@ -75,8 +75,7 @@ You can modify:
 
 - Trigger type
 - Connected services
-- Business logic
-- Output actions
+
 
 ## License
 
